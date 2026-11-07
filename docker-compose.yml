@@ -1,0 +1,118 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  payments:
+    build: ./payments
+    command: sh -c "npx prisma migrate deploy && node dist/prisma/seed.js && node dist/src/index.js"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/payments
+      REDIS_URL: redis://redis:6379
+      PORT: "3002"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3002/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 40s
+
+  shipping:
+    build: ./shipping
+    command: sh -c "npx prisma migrate deploy && node dist/prisma/seed.js && node dist/src/index.js"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/shipping
+      REDIS_URL: redis://redis:6379
+      PORT: "3003"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3003/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 40s
+
+  orders:
+    build: ./orders
+    command: sh -c "npx prisma migrate deploy && node dist/prisma/seed.js && node dist/src/index.js"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/orders
+      REDIS_URL: redis://redis:6379
+      PORT: "3001"
+      PAYMENTS_URL: http://payments:3002
+      SHIPPING_URL: http://shipping:3003
+      STRIPE_URL: https://api.stripe.com
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      payments:
+        condition: service_healthy
+      shipping:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3001/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 40s
+
+  gateway:
+    build: ./gateway
+    command: sh -c "npx prisma migrate deploy && node dist/prisma/seed.js && node dist/src/index.js"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/gateway
+      REDIS_URL: redis://redis:6379
+      PORT: "3000"
+      ORDERS_URL: http://orders:3001
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      orders:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 40s
+
+volumes:
+  pgdata:

@@ -1,0 +1,23 @@
+{
+  "name": "@shopmesh/orders",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "prisma generate && tsc",
+    "start": "node dist/src/index.js",
+    "migrate": "prisma migrate deploy",
+    "seed": "node dist/prisma/seed.js",
+    "dev": "ts-node src/index.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.22.0",
+    "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.10.0",
+    "prisma": "^5.22.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.2"
+  }
+}

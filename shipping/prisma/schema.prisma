@@ -1,0 +1,16 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Shipment {
+  id           String   @id @default(uuid())
+  carrier      String   @default("ups")
+  trackingCode String   @unique
+  status       String   @default("label_created")
+  createdAt    DateTime @default(now())
+}
