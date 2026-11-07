@@ -1,0 +1,16 @@
+version: 1
+app:
+  component: gateway
+  healthPath: /health
+benchmarkMode:
+  envVar: AIR_BENCHMARK_MODE
+  tokenEnvVar: AIR_BENCHMARK_TOKEN
+setup:
+  seed:
+    command: "node dist/src/airSeed.js --scale {scale}"
+    scales: { small: 1, realistic: 10, large: 100 }
+    expectedRows: { Product: 1000 }
+auth:
+  strategy: none
+externalServices:
+  orders: { envVar: ORDERS_URL, component: orders }  # sibling service

@@ -1,5 +1,6 @@
 import express from 'express';
 import { PrismaClient } from '@prisma/client';
+import { registerAirRoutes } from './air';
 
 const app = express();
 app.use(express.json());
@@ -34,5 +35,12 @@ app.get('/shipments/:id', async (req, res) => {
   res.json(shipment);
 });
 
+// AIR benchmark support routes — inert unless AIR_BENCHMARK_MODE=1.
+registerAirRoutes(app, prisma);
+
 const port = Number(process.env.PORT) || 3003;
-app.listen(port, () => console.log(`shipping listening on ${port}`));
+if (require.main === module) {
+  app.listen(port, () => console.log(`shipping listening on ${port}`));
+}
+
+export { app };

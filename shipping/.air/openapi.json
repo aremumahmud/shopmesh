@@ -1,0 +1,91 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "shopmesh shipping",
+    "version": "1.0.0",
+    "description": "Shipping service. Creates shipments with tracking codes. Makes no outbound calls."
+  },
+  "servers": [{ "url": "http://localhost:3003" }],
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health check",
+        "responses": {
+          "200": {
+            "description": "Service is healthy",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Health" },
+                "example": { "status": "ok", "service": "shipping" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/shipments": {
+      "post": {
+        "summary": "Create a shipment",
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ShipmentRequest" },
+              "example": { "carrier": "ups" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Shipment created",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Shipment" } } }
+          }
+        }
+      }
+    },
+    "/shipments/{id}": {
+      "get": {
+        "summary": "Fetch a shipment by id",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "example": "5e6f7a8b-..." }
+        ],
+        "responses": {
+          "200": {
+            "description": "Shipment",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Shipment" } } }
+          },
+          "404": {
+            "description": "Not found",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Health": {
+        "type": "object",
+        "properties": { "status": { "type": "string" }, "service": { "type": "string" } }
+      },
+      "ShipmentRequest": {
+        "type": "object",
+        "properties": { "carrier": { "type": "string", "default": "ups" } }
+      },
+      "Shipment": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "carrier": { "type": "string" },
+          "trackingCode": { "type": "string" },
+          "status": { "type": "string" },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": { "error": { "type": "string" } }
+      }
+    }
+  }
+}

@@ -1,0 +1,141 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "shopmesh orders",
+    "version": "1.0.0",
+    "description": "Order service. Creates orders by charging payments, booking shipping, and calling the external Stripe processor."
+  },
+  "servers": [{ "url": "http://localhost:3001" }],
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health check",
+        "responses": {
+          "200": {
+            "description": "Service is healthy",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Health" },
+                "example": { "status": "ok", "service": "orders" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/orders": {
+      "post": {
+        "summary": "Create an order",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateOrderRequest" },
+              "example": {
+                "customerEmail": "a@b.com",
+                "items": [{ "sku": "TEE-001", "name": "Classic Tee", "quantity": 2, "priceCents": 1999 }]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Order created",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Order" } } }
+          },
+          "400": {
+            "description": "Invalid request body",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          },
+          "502": {
+            "description": "Downstream service failure",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          }
+        }
+      },
+      "get": {
+        "summary": "List orders (each enriched with its charge — cross-service N+1)",
+        "responses": {
+          "200": {
+            "description": "Orders with charges",
+            "content": {
+              "application/json": {
+                "schema": { "type": "array", "items": { "$ref": "#/components/schemas/OrderWithCharge" } }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/orders/{id}": {
+      "get": {
+        "summary": "Fetch an order by id",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "example": "3f9a1c2e-..." }
+        ],
+        "responses": {
+          "200": {
+            "description": "Order",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Order" } } }
+          },
+          "404": {
+            "description": "Not found",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Health": {
+        "type": "object",
+        "properties": { "status": { "type": "string" }, "service": { "type": "string" } }
+      },
+      "OrderItem": {
+        "type": "object",
+        "required": ["sku", "name", "quantity", "priceCents"],
+        "properties": {
+          "sku": { "type": "string" },
+          "name": { "type": "string" },
+          "quantity": { "type": "integer" },
+          "priceCents": { "type": "integer" }
+        }
+      },
+      "CreateOrderRequest": {
+        "type": "object",
+        "required": ["customerEmail", "items"],
+        "properties": {
+          "customerEmail": { "type": "string", "format": "email" },
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/OrderItem" } }
+        }
+      },
+      "Order": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "customerEmail": { "type": "string" },
+          "totalCents": { "type": "integer" },
+          "chargeId": { "type": "string", "nullable": true },
+          "shipmentId": { "type": "string", "nullable": true },
+          "status": { "type": "string" },
+          "createdAt": { "type": "string", "format": "date-time" },
+          "items": { "type": "array", "items": { "$ref": "#/components/schemas/OrderItem" } }
+        }
+      },
+      "OrderWithCharge": {
+        "allOf": [
+          { "$ref": "#/components/schemas/Order" },
+          {
+            "type": "object",
+            "properties": { "charge": { "type": "object", "nullable": true } }
+          }
+        ]
+      },
+      "Error": {
+        "type": "object",
+        "properties": { "error": { "type": "string" } }
+      }
+    }
+  }
+}

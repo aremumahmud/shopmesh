@@ -1,0 +1,18 @@
+version: 1
+app:
+  component: orders
+  healthPath: /health
+benchmarkMode:
+  envVar: AIR_BENCHMARK_MODE
+  tokenEnvVar: AIR_BENCHMARK_TOKEN
+setup:
+  seed:
+    command: "node dist/src/airSeed.js --scale {scale}"
+    scales: { small: 1, realistic: 10, large: 100 }
+    expectedRows: { Order: 1000, OrderItem: 1000 }
+auth:
+  strategy: none
+externalServices:
+  payments: { envVar: PAYMENTS_URL, component: payments }  # sibling service
+  shipping: { envVar: SHIPPING_URL, component: shipping }  # sibling service
+  stripe: { envVar: STRIPE_URL, stub: { latencyMs: { p50: 120, p95: 400 }, errorRate: 0.01 } }  # third-party (always stubbed)

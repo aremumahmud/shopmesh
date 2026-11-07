@@ -1,0 +1,99 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "shopmesh payments",
+    "version": "1.0.0",
+    "description": "Payment service. Records charges. Makes no outbound calls."
+  },
+  "servers": [{ "url": "http://localhost:3002" }],
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health check",
+        "responses": {
+          "200": {
+            "description": "Service is healthy",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Health" },
+                "example": { "status": "ok", "service": "payments" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/charge": {
+      "post": {
+        "summary": "Create a charge",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ChargeRequest" },
+              "example": { "amountCents": 3998, "stripeRef": "pi_3Nk..." }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Charge created",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Charge" } } }
+          },
+          "400": {
+            "description": "Invalid request body",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          }
+        }
+      }
+    },
+    "/charges/{id}": {
+      "get": {
+        "summary": "Fetch a charge by id",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" }, "example": "9a1b2c3d-..." }
+        ],
+        "responses": {
+          "200": {
+            "description": "Charge",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Charge" } } }
+          },
+          "404": {
+            "description": "Not found",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Health": {
+        "type": "object",
+        "properties": { "status": { "type": "string" }, "service": { "type": "string" } }
+      },
+      "ChargeRequest": {
+        "type": "object",
+        "required": ["amountCents"],
+        "properties": {
+          "amountCents": { "type": "integer" },
+          "stripeRef": { "type": "string", "nullable": true }
+        }
+      },
+      "Charge": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "amountCents": { "type": "integer" },
+          "stripeRef": { "type": "string", "nullable": true },
+          "status": { "type": "string" },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": { "error": { "type": "string" } }
+      }
+    }
+  }
+}
